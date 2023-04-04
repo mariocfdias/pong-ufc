@@ -16,8 +16,21 @@
 
 <script>
 
-	const SPEED_MULTIPLIER = 0.22
-	const FPS = 1000
+	const SPEED_MULTIPLIER = 0.17
+	const FPS = 144
+	
+	const score = {
+		player: 0,
+		cpu: 0
+	}
+
+	const PID = {
+		error: 0,
+		kP: 0.15,
+		kD: 0.4,
+		lastError: 0,
+		correction: 0
+	}
 
 	const timeStep = 1000/FPS
 	var lastTimeFrameMs = 0
@@ -27,15 +40,23 @@
 		y: 50,
 		xSpeed: 0,
 		ySpeed: 0,
-		width: 200,
+		width: 100,
 		height: 10,
 		color: "#104911",
 		
 		catchBall: function(ball) {
-			var willStrike = Math.random() < 0.8
-			var speedIncrease = willStrike ? ball.x.speed + (Math.random() - 0.5) * ball.x.speed*0.2 : ball.x.speed/3
-			this.xSpeed = speedIncrease 
+			//var willStrike = Math.random() < 0.8
+			//var speedIncrease = willStrike ? ball.x.speed + (Math.random() - 0.5) * ball.x.speed*0.2 : ball.x.speed/3
+			//this.xSpeed = speedIncrease 
 			// 			if(willStrike) this.x = ball.x.position - this.width/2 - 10
+			var paddleReference = (this.x + this.x + this.width) / 2
+			PID.error =  ball.x.position - paddleReference
+
+			//this.x = ball.x.position - this.width/2
+
+			PID.correction = PID.error*PID.kP + (PID.error - PID.lastError)* PID.kD
+			PID.lastError = PID.error
+			this.xSpeed = PID.correction
 
 
 		},
@@ -44,7 +65,6 @@
 				var colisionPoint = this.x + this.width/2 - ball.x.position
             ball.x.speed = -colisionPoint * SPEED_MULTIPLIER;
             ball.y.speed = -ball.y.speed;
-			// if(Math.random() > 0.3) ball.x.speed = -ball.x.speed;
         }
 		}
 	} 
@@ -54,7 +74,7 @@
 		y: 550,
 		xSpeed: 0,
 		ySpeed: 0,
-		width: 200,
+		width: 100,
 		height: 10,
 		color: "#104911",
 		colision: function (ball) {
@@ -62,8 +82,9 @@
 				var colisionPoint = this.x + this.width/2 - ball.x.position
             ball.x.speed = -colisionPoint * SPEED_MULTIPLIER;
             ball.y.speed = -ball.y.speed;
-			// if(Math.random() > 0.3) ball.x.speed = -ball.x.speed;
         }
+
+
 		}
 	}
 
@@ -82,18 +103,16 @@
 
     var barX = 300
     var barY = 550
-	var barWidth = 200
+	var barWidth = 100
 	window.onload = function() {
 		canvas = document.getElementById('gameCanvas');
 
-        canvas.addEventListener("keypress", (event) => {
-        if(event.key == "a") enemyBar.x = enemyBar.x-10
-        if(event.key == "d") enemyBar.x = enemyBar.x+10
-
-        })
-
 		canvas.addEventListener("click", (event) => {
        
+			if(score.player >= 5 || score.cpu >= 5){
+				score.player = 0
+				score.cpu = 0
+			}
 			if(ball.y.speed == 0) {
 				ball.y.position = 250
 				ball.y.speed = 10
@@ -102,8 +121,16 @@
 
 		canvas.addEventListener("mousemove", evt => {
 			var { x, y } = calculateMousePos(evt)
-			barX = x - barWidth/2
-			playerBar.x = x - playerBar.width/2
+
+
+			if(!(x < barWidth/2) && !(x > canvas.width - barWidth/2)){
+
+				barX = x - barWidth/2
+				
+				playerBar.x = x - playerBar.width/2
+			}
+
+
 		})
 
 		canvasContext = canvas.getContext('2d');
@@ -144,7 +171,18 @@
 
         if((ball.y.position + ball.y.speed) > canvas.height) {
 			ball.y.speed = 0
+			ball.x.speed = 0
 			ball.y.position = canvas.height - 10
+			score.cpu += 1
+		}
+
+		if(ball.y.position + ball.y.speed < 10){
+			ball.y.speed = 0
+			ball.x.speed = 0
+			ball.y.position = 10
+
+			score.player += 1
+
 		}
         
 
@@ -155,7 +193,7 @@
 		//	if(Math.random() > 0.3)             ball.x.speed = -ball.x.speed;
        // }
 
-	   enemyBar.x = enemyBar.x + enemyBar.xSpeed
+	   if(!(enemyBar.x + enemyBar.speed < 0) && !(enemyBar.x + enemyBar.speed > canvas.width))  enemyBar.x = enemyBar.x + enemyBar.xSpeed
 
 	   playerBar.colision(ball)
 	   enemyBar.colision(ball)
@@ -188,11 +226,33 @@
 		colorCircle(ball.x.position, ball.y.position, 10, "#F9A620")
         colorRect(barX, 550, barWidth, 10, "#548C2F")
 		colorRect(enemyBar.x, enemyBar.y, enemyBar.width, enemyBar.height, enemyBar.color)
+
+		canvasContext.fillStyle = '#F67828';
+
+		canvasContext.font = "30px Arial";
+		canvasContext.fillText(score.cpu, 50, 50);
+		canvasContext.fillText(score.player, canvas.width - 50, canvas.height - 50);
+
+		if(score.cpu >= 5)
+		{
+			canvasContext.fillText("CPU ganhou", canvas.width/2, canvas.height/2);
+		}
+
+		
+		if(score.player >= 5)
+		{
+			canvasContext.fillText("Jogador ganhou", canvas.width/2, canvas.height/2);
+		}
+
 	}
 </script>
 <style>
-	.body {
-		background-color: aqua;
+	body {
+		background-color: #fdcae1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		
 	}
 </style>
 
