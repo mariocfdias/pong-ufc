@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta content="text/html;charset=utf-8" 
+      http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+</head>
+
+<html>
+	<body>
+
+		<canvas tabindex="1" id="gameCanvas" width="800" height="600"></canvas>
+	</body>
+
+
+<script>
+
+	const SPEED_MULTIPLIER = 0.22
+	const FPS = 1000
+
+	const timeStep = 1000/FPS
+	var lastTimeFrameMs = 0
+
+	var enemyBar = {
+		x: 50,
+		y: 50,
+		xSpeed: 0,
+		ySpeed: 0,
+		width: 200,
+		height: 10,
+		color: "#104911",
+		
+		catchBall: function(ball) {
+			var willStrike = Math.random() < 0.8
+			var speedIncrease = willStrike ? ball.x.speed + (Math.random() - 0.5) * ball.x.speed*0.2 : ball.x.speed/3
+			this.xSpeed = speedIncrease 
+			// 			if(willStrike) this.x = ball.x.position - this.width/2 - 10
+
+
+		},
+		colision: function (ball) {
+			if(ball.x.position > this.x && ball.x.position < (this.x + this.width) && ball.y.position > this.y && ball.y.position <= (this.y + this.height) ){
+				var colisionPoint = this.x + this.width/2 - ball.x.position
+            ball.x.speed = -colisionPoint * SPEED_MULTIPLIER;
+            ball.y.speed = -ball.y.speed;
+			// if(Math.random() > 0.3) ball.x.speed = -ball.x.speed;
+        }
+		}
+	} 
+
+	var playerBar = {
+		x: 300,
+		y: 550,
+		xSpeed: 0,
+		ySpeed: 0,
+		width: 200,
+		height: 10,
+		color: "#104911",
+		colision: function (ball) {
+			if(ball.x.position > this.x && ball.x.position < (this.x + this.width) && ball.y.position > this.y && ball.y.position <= (this.y + this.height) ){
+				var colisionPoint = this.x + this.width/2 - ball.x.position
+            ball.x.speed = -colisionPoint * SPEED_MULTIPLIER;
+            ball.y.speed = -ball.y.speed;
+			// if(Math.random() > 0.3) ball.x.speed = -ball.x.speed;
+        }
+		}
+	}
+
+	var ball = {
+		x: {
+			position: 50,
+			speed: 10
+		},
+		y: {
+			position: 250,
+			speed: 10
+		}
+	}
+	var canvas;
+	var canvasContext;
+
+    var barX = 300
+    var barY = 550
+	var barWidth = 200
+	window.onload = function() {
+		canvas = document.getElementById('gameCanvas');
+
+        canvas.addEventListener("keypress", (event) => {
+        if(event.key == "a") enemyBar.x = enemyBar.x-10
+        if(event.key == "d") enemyBar.x = enemyBar.x+10
+
+        })
+
+		canvas.addEventListener("click", (event) => {
+       
+			if(ball.y.speed == 0) {
+				ball.y.position = 250
+				ball.y.speed = 10
+			}
+        })
+
+		canvas.addEventListener("mousemove", evt => {
+			var { x, y } = calculateMousePos(evt)
+			barX = x - barWidth/2
+			playerBar.x = x - playerBar.width/2
+		})
+
+		canvasContext = canvas.getContext('2d');
+		var framesPerSecond = 30;
+		requestAnimationFrame(mainLoop)
+
+	}
+
+	function mainLoop(timeStamp){
+		if(timeStamp < lastTimeFrameMs + timeStep){
+			requestAnimationFrame(mainLoop)
+			return
+		}
+		lastTimeFrameMs = timeStamp
+		move();
+		draw();
+		requestAnimationFrame(mainLoop)
+
+	}
+
+	function colorCircle (centerX, centerY, radius = 5, color="red") {
+		canvasContext.fillStyle = color
+		canvasContext.beginPath()
+		canvasContext.arc(centerX, centerY, radius, 0, Math.PI * 2, true)
+		canvasContext.fill()
+	}
+	
+	function move() {
+		ball.x.position = ball.x.position + ball.x.speed;
+		if((ball.x.position >= canvas.width || ball.x.position <= 0))
+			ball.x.speed = -ball.x.speed;
+        
+        
+        
+        ball.y.position = ball.y.position + ball.y.speed;
+		if( ball.y.position <= 0)
+            ball.y.speed = -ball.y.speed;
+
+        if((ball.y.position + ball.y.speed) > canvas.height) {
+			ball.y.speed = 0
+			ball.y.position = canvas.height - 10
+		}
+        
+
+        //if(ball.x.position > barX && ball.x.position < (barX + barWidth) && ball.y.position > barY && ball.y.position ){
+        //    ball.x.speed = -ball.x.speed;
+        //    ball.y.speed = -ball.y.speed;
+			//if(barWidth > 50) barWidth = barWidth - 20
+		//	if(Math.random() > 0.3)             ball.x.speed = -ball.x.speed;
+       // }
+
+	   enemyBar.x = enemyBar.x + enemyBar.xSpeed
+
+	   playerBar.colision(ball)
+	   enemyBar.colision(ball)
+	   enemyBar.catchBall(ball)
+
+	}
+
+    function colorRect (x, y, width=20, height=20,color="red") {
+
+		canvasContext.fillStyle = color
+		canvasContext.fillRect(x,y,width,height)
+    }
+
+	function calculateMousePos (evt){
+		var rect = canvas.getBoundingClientRect()
+		var root = document.documentElement
+		var mouseX = evt.clientX -rect.left - root.scrollLeft
+		var mouseY = evt.clientY -rect.top - root.scrollTop
+
+		return {
+			x: mouseX,
+			y: mouseY
+		}
+
+	}
+	
+	function draw() {
+        canvasContext.fillStyle = '#A8D5E2';
+		canvasContext.fillRect(0,0,canvas.width,canvas.height);
+		colorCircle(ball.x.position, ball.y.position, 10, "#F9A620")
+        colorRect(barX, 550, barWidth, 10, "#548C2F")
+		colorRect(enemyBar.x, enemyBar.y, enemyBar.width, enemyBar.height, enemyBar.color)
+	}
+</script>
+<style>
+	.body {
+		background-color: aqua;
+	}
+</style>
+
+</html>
